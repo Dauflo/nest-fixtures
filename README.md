@@ -85,10 +85,7 @@ bootstrap()
 ```
 
 ```json
-// package.json
-
 "scripts": {
-    ...,
     "fixtures": "npm run build && node dist/fixtures fixtures",
     "fixtures:delete": "npm run build && node dist/fixtures fixtures --delete"
 }
