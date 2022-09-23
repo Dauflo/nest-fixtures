@@ -1,6 +1,6 @@
 {
   "name": "@dauflo/nest-fixtures",
-  "version": "0.0.11",
+  "version": "1.0.0",
   "description": "A module for making fixtures with NestJS. This package is inspired by Doctrine fixtures.",
   "main": "./dist/index.js",
   "repository": {
