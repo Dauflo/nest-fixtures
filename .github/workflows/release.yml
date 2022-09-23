@@ -14,11 +14,18 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Get node-version
+        id: vars
+        run: echo ::set-output name=tag::$(echo ${GITHUB_REF:10})
+
       - name: Setup node
         uses: actions/setup-node@v3
         with:
           node-version: '16.x'
           registry-url: 'https://registry.npmjs.org'
+
+      - name: Bumd package version
+        run: npm version ${{ steps.vars.outputs.tag }}
 
       - name: Npm ci
         run: npm ci
