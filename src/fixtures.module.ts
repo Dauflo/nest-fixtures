@@ -41,7 +41,7 @@ export class FixturesModule {
                         args.forEach((arg) => (providersObject[arg.constructor.name] = arg))
                         return providersObject
                     },
-                    inject: fixturesProviders
+                    inject: fixturesProviders,
                 },
             ],
             exports: ['FIXTURES'],

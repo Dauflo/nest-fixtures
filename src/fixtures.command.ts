@@ -41,7 +41,7 @@ export class FixturesCommand extends CommandRunner {
 
     @Option({
         flags: '--delete',
-        description: 'Purge all the current collections'
+        description: 'Purge all the current collections',
     })
     purgeDatabase() {
         console.log('Starting purging database...')
