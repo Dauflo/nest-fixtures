@@ -1,14 +1,25 @@
 {
   "name": "@dauflo/nest-fixtures",
-  "version": "0.0.10",
-  "description": "",
+  "version": "0.0.11",
+  "description": "A module for making fixtures with NestJS. This package is inspired by Doctrine fixtures.",
   "main": "./dist/index.js",
+  "repository": {
+    "type": "github",
+    "url": "https://github.com/Dauflo/nest-fixtures.git"
+  },
   "scripts": {
     "build": "tsc"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
+  "keywords": [
+    "cli",
+    "nestjs",
+    "fixtures",
+    "mongoose",
+    "mongodb",
+    "nest"
+  ],
+  "author": "Aloïs Ceola <alois.ceola@hotmail.fr>",
+  "license": "MIT",
   "dependencies": {
     "@nestjs/common": "^9.1.1",
     "@nestjs/core": "^9.1.1",
