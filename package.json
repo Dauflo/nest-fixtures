@@ -1,0 +1,25 @@
+{
+  "name": "@dauflo/nest-fixtures",
+  "version": "0.0.10",
+  "description": "",
+  "main": "./dist/index.js",
+  "scripts": {
+    "build": "tsc"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@nestjs/common": "^9.1.1",
+    "@nestjs/core": "^9.1.1",
+    "@nestjs/mongoose": "^9.2.0",
+    "@types/glob": "^8.0.0",
+    "glob": "^8.0.3",
+    "mongoose": "^6.6.1",
+    "nest-commander": "^3.1.0",
+    "reflect-metadata": "^0.1.13"
+  },
+  "devDependencies": {
+    "typescript": "^4.8.3"
+  }
+}
