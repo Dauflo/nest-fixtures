@@ -3,6 +3,7 @@
   "version": "0.0.1",
   "description": "A module for making fixtures with NestJS. This package is inspired by Doctrine fixtures.",
   "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "repository": {
     "type": "github",
     "url": "https://github.com/Dauflo/nest-fixtures.git"
