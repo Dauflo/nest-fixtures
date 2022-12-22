@@ -59,7 +59,6 @@ export class FixturesModule {
             fixturesProviders.push(fixture[Object.keys(fixture)[0]])
         })
 
-
         // import entities
         const entitiesPath = glob.sync(entitiesPathPattern)
         const entitiesRelativePath = entitiesPath.map((path) => `${process.cwd()}/${buildDir}/${path}`).map((path) => path.replace('.ts', ''))
