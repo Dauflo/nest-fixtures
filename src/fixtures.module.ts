@@ -64,7 +64,12 @@ export class FixturesModule {
         }
     }
 
-    static async forRootAsyncMonorepo(fixturesPathPattern: string, entitiesPathPattern: string, discriminatorDir: string = 'discriminators', buildDir: string = 'dist'): Promise<DynamicModule> {
+    static async forRootAsyncMonorepo(
+        fixturesPathPattern: string,
+        entitiesPathPattern: string,
+        discriminatorDir: string = 'discriminators',
+        buildDir: string = 'dist',
+    ): Promise<DynamicModule> {
         // import fixtures
         const fixturesPath = glob.sync(fixturesPathPattern)
         const fixturesRelativePath = fixturesPath.map((path) => `${process.cwd()}/${buildDir}/${path}`).map((path) => path.replace('.ts', ''))
