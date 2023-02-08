@@ -4,7 +4,7 @@ import { glob } from 'glob'
 import { ReferenceRepository } from './fixtures'
 
 export class FixturesModule {
-    static async forRootAsync(fixturesPathPattern: string, entitiesPathPattern: string): Promise<DynamicModule> {
+    static async forRootAsync(fixturesPathPattern: string, entitiesPathPattern: string, discriminatorDir: string = 'discriminatorDir'): Promise<DynamicModule> {
         // import fixtures
         const fixturesPath = glob.sync(fixturesPathPattern)
         const fixturesRelativePath = fixturesPath.map((path) => path.replace('src/', `${process.cwd()}/dist/`)).map((path) => path.replace('.ts', ''))
@@ -18,15 +18,31 @@ export class FixturesModule {
         // import entities
         const entitiesPath = glob.sync(entitiesPathPattern)
         const entitiesRelativePath = entitiesPath.map((path) => path.replace('src/', `${process.cwd()}/dist/`)).map((path) => path.replace('.ts', ''))
-        const entitiesProviders: any[] = []
-        const importedEntities = await Promise.all(entitiesRelativePath.map((path) => import(path)))
 
-        importedEntities.forEach((entity) => {
-            entitiesProviders.push({
-                name: entity[Object.keys(entity)[0]].name,
-                schema: entity[Object.keys(entity)[1]],
-            })
-        })
+        const nonDiscriminatorsRelativePath = entitiesRelativePath.filter((e) => !e.includes(discriminatorDir))
+        const discriminatorsRelativePath = entitiesRelativePath.filter((e) => e.includes(discriminatorDir))
+
+        const entitiesProviders: any[] = []
+
+        for (const entity of nonDiscriminatorsRelativePath) {
+            const importedEntity = await import(entity)
+
+            const provider = {
+                name: importedEntity[Object.keys(importedEntity)[0]].name,
+                schema: importedEntity[Object.keys(importedEntity)[1]],
+            }
+
+            const discriminators = discriminatorsRelativePath.filter((e) => e.includes(entity.replace(/(.+)(\/.+)$/gm, '$1')))
+
+            if (discriminators.length !== 0) {
+                const importedDiscriminators = await Promise.all(discriminators.map((path) => import(path)))
+                provider['discriminators'] = importedDiscriminators.map((e) => {
+                    return { name: e[Object.keys(e)[0]].name, schema: e[Object.keys(e)[1]] }
+                })
+            }
+
+            entitiesProviders.push(provider)
+        }
 
         return {
             module: FixturesModule,
@@ -48,7 +64,12 @@ export class FixturesModule {
         }
     }
 
-    static async forRootAsyncMonorepo(fixturesPathPattern: string, entitiesPathPattern: string, buildDir: string = 'dist'): Promise<DynamicModule> {
+    static async forRootAsyncMonorepo(
+        fixturesPathPattern: string,
+        entitiesPathPattern: string,
+        discriminatorDir: string = 'discriminators',
+        buildDir: string = 'dist',
+    ): Promise<DynamicModule> {
         // import fixtures
         const fixturesPath = glob.sync(fixturesPathPattern)
         const fixturesRelativePath = fixturesPath.map((path) => `${process.cwd()}/${buildDir}/${path}`).map((path) => path.replace('.ts', ''))
@@ -62,15 +83,31 @@ export class FixturesModule {
         // import entities
         const entitiesPath = glob.sync(entitiesPathPattern)
         const entitiesRelativePath = entitiesPath.map((path) => `${process.cwd()}/${buildDir}/${path}`).map((path) => path.replace('.ts', ''))
-        const entitiesProviders: any[] = []
-        const importedEntities = await Promise.all(entitiesRelativePath.map((path) => import(path)))
 
-        importedEntities.forEach((entity) => {
-            entitiesProviders.push({
-                name: entity[Object.keys(entity)[0]].name,
-                schema: entity[Object.keys(entity)[1]],
-            })
-        })
+        const nonDiscriminatorsRelativePath = entitiesRelativePath.filter((e) => !e.includes(discriminatorDir))
+        const discriminatorsRelativePath = entitiesRelativePath.filter((e) => e.includes(discriminatorDir))
+
+        const entitiesProviders: any[] = []
+
+        for (const entity of nonDiscriminatorsRelativePath) {
+            const importedEntity = await import(entity)
+
+            const provider = {
+                name: importedEntity[Object.keys(importedEntity)[0]].name,
+                schema: importedEntity[Object.keys(importedEntity)[1]],
+            }
+
+            const discriminators = discriminatorsRelativePath.filter((e) => e.includes(entity.replace(/(.+)(\/.+)$/gm, '$1')))
+
+            if (discriminators.length !== 0) {
+                const importedDiscriminators = await Promise.all(discriminators.map((path) => import(path)))
+                provider['discriminators'] = importedDiscriminators.map((e) => {
+                    return { name: e[Object.keys(e)[0]].name, schema: e[Object.keys(e)[1]] }
+                })
+            }
+
+            entitiesProviders.push(provider)
+        }
 
         return {
             module: FixturesModule,
