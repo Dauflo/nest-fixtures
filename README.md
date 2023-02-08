@@ -165,6 +165,29 @@ To create dependencies, just add the `getDependencies` method and give the fixtu
 
 The `ReferenceRepository` is a `singleton` that will keep track of the data passed from fixtures to fixtures.
 
+## Discriminator
+You can use the mongoose discriminator feature in your fixtures. You just need to add put your discriminators class in a folder named for example `discri` and add the following definition when importing the fixtures modules:
+
+```ts
+// src/app.module.ts
+
+import { FixturesCommand, FixturesModule } from '@dauflo/nest-fixtures'
+
+@Module({
+    imports: [
+        FixturesModule.forRootAsync(
+            'src/datafixtures/*.fixtures.ts',
+            'src/models/**/*.schema.ts',
+            'discri'
+        )
+    ],
+    providers: [
+        FixturesCommand
+    ]
+})
+export class AppModule {}
+```
+
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
