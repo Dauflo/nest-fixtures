@@ -72,7 +72,9 @@ export class FixturesModule {
     ): Promise<DynamicModule> {
         // import fixtures
         const fixturesPath = glob.sync(fixturesPathPattern)
-        const fixturesRelativePath = fixturesPath.map((path) => `${process.cwd()}/${buildDir}/${path.split('/').slice(-2).join('/')}`).map((path) => path.replace('.ts', ''))
+        const fixturesRelativePath = fixturesPath
+            .map((path) => `${process.cwd()}/${buildDir}/${path.split('/').slice(-2).join('/')}`)
+            .map((path) => path.replace('.ts', ''))
         const fixturesProviders: any[] = []
         const importedFixtures = await Promise.all(fixturesRelativePath.map((path) => import(path)))
 
@@ -82,7 +84,9 @@ export class FixturesModule {
 
         // import entities
         const entitiesPath = glob.sync(entitiesPathPattern)
-        const entitiesRelativePath = entitiesPath.map((path) => `${process.cwd()}/${buildDir}/${path.split('/').slice(-3).join('/')}`).map((path) => path.replace('.ts', ''))
+        const entitiesRelativePath = entitiesPath
+            .map((path) => `${process.cwd()}/${buildDir}/${path.split('/').slice(-3).join('/')}`)
+            .map((path) => path.replace('.ts', ''))
 
         const nonDiscriminatorsRelativePath = entitiesRelativePath.filter((e) => !e.includes(discriminatorDir))
         const discriminatorsRelativePath = entitiesRelativePath.filter((e) => e.includes(discriminatorDir))
