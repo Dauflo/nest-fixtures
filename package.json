@@ -23,17 +23,17 @@
   "author": "Aloïs Ceola <alois.ceola@hotmail.fr>",
   "license": "MIT",
   "dependencies": {
-    "@nestjs/common": "^9.1.1",
-    "@nestjs/core": "^9.1.1",
-    "@nestjs/mongoose": "^9.2.0",
-    "@types/glob": "^8.0.0",
-    "glob": "^8.0.3",
-    "mongoose": "^6.6.1",
-    "nest-commander": "^3.1.0",
-    "reflect-metadata": "^0.1.13"
+    "@nestjs/common": "^11.1.13",
+    "@nestjs/core": "^11.1.13",
+    "@nestjs/mongoose": "^11.0.4",
+    "@types/glob": "^9.0.0",
+    "glob": "^13.0.2",
+    "mongoose": "^9.2.1",
+    "nest-commander": "^3.20.1",
+    "reflect-metadata": "^0.2.2"
   },
   "devDependencies": {
-    "prettier": "^2.7.1",
-    "typescript": "^4.8.3"
+    "prettier": "^3.8.1",
+    "typescript": "^5.9.3"
   }
 }
