@@ -12,7 +12,10 @@ type FixturesObject = {
 export class FixturesCommand extends CommandRunner {
     private fixturesDone: string[] = []
 
-    constructor(@Inject('FIXTURES') private fixtures: FixturesObject, @InjectConnection() private readonly connection: Connection) {
+    constructor(
+        @Inject('FIXTURES') private fixtures: FixturesObject,
+        @InjectConnection() private readonly connection: Connection,
+    ) {
         super()
     }
 
