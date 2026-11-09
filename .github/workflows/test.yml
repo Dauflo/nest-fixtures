@@ -1,0 +1,40 @@
+name: Test
+
+on:
+  # pull requests are tested through `pull_request`, only `master` needs `push` (it would run the tests twice on a pull request)
+  push:
+    branches: [master]
+  pull_request:
+
+jobs:
+  test:
+    name: Test (node ${{ matrix.node-version }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: ['20.x', '22.x', '24.x', '26.x']
+
+    services:
+      mongodb:
+        image: mongo:7
+        ports:
+          - 27017:27017
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup node
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Npm ci
+        run: npm ci
+
+      - name: Npm test
+        run: npm test
+        env:
+          MONGODB_URI: mongodb://localhost:27017/nest-fixtures-test

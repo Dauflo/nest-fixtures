@@ -1,67 +1,110 @@
 import { DynamicModule } from '@nestjs/common'
 import { MongooseModule } from '@nestjs/mongoose'
 import { glob } from 'glob'
-import { ReferenceRepository } from './fixtures'
+import { Schema } from 'mongoose'
+import { Fixtures, ReferenceRepository } from './fixtures'
+import { registerOutputRoot } from './module-resolver'
 
-export class FixturesModule {
-    static async forRootAsync(fixturesPathPattern: string, entitiesPathPattern: string, discriminatorDir: string = 'discriminatorDir'): Promise<DynamicModule> {
-        // import fixtures
-        const fixturesPath = glob.sync(fixturesPathPattern)
-        const fixturesRelativePath = fixturesPath.map((path) => path.replace('src/', `${process.cwd()}/dist/`)).map((path) => path.replace('.ts', ''))
-        const fixturesProviders: any[] = []
-        const importedFixtures = await Promise.all(fixturesRelativePath.map((path) => import(path)))
+type ModuleExports = { [key: string]: any }
+type EntityDefinition = { name: string; schema: Schema }
 
-        importedFixtures.forEach((fixture) => {
-            fixturesProviders.push(fixture[Object.keys(fixture)[0]])
-        })
+// duck typing as a fallback in case the project resolves another copy of mongoose / of this package
+const isSchema = (value: any): value is Schema =>
+    value instanceof Schema || (value?.constructor?.name === 'Schema' && typeof value.path === 'function' && typeof value.add === 'function')
 
-        // import entities
-        const entitiesPath = glob.sync(entitiesPathPattern)
-        const entitiesRelativePath = entitiesPath.map((path) => path.replace('src/', `${process.cwd()}/dist/`)).map((path) => path.replace('.ts', ''))
+const isFixturesClass = (value: any) =>
+    typeof value === 'function' &&
+    (value.prototype instanceof Fixtures || (typeof value.prototype?.load === 'function' && typeof value.prototype?.getDependencies === 'function'))
 
-        const nonDiscriminatorsRelativePath = entitiesRelativePath.filter((e) => !e.includes(discriminatorDir))
-        const discriminatorsRelativePath = entitiesRelativePath.filter((e) => e.includes(discriminatorDir))
+function getFixtures(exported: ModuleExports, path: string): any[] {
+    const fixtures = Object.values(exported).filter(isFixturesClass)
+    if (fixtures.length === 0) {
+        throw new Error(`No class extending Fixtures is exported from "${path}"`)
+    }
+    return fixtures
+}
 
-        const entitiesProviders: any[] = []
+// pairs every exported schema with its class, following the `export const CatSchema = SchemaFactory.createForClass(Cat)` naming
+function getEntities(exported: ModuleExports, path: string): EntityDefinition[] {
+    const schemas = Object.entries(exported).filter(([, value]) => isSchema(value))
+    const classes = Object.values(exported).filter((value) => typeof value === 'function')
 
-        for (const entity of nonDiscriminatorsRelativePath) {
-            const importedEntity = await import(entity)
+    const entities = schemas
+        .filter(([key]) => typeof exported[key.replace(/Schema$/, '')] === 'function')
+        .map(([key, schema]) => ({ name: exported[key.replace(/Schema$/, '')].name, schema }))
 
-            const provider = {
-                name: importedEntity[Object.keys(importedEntity)[0]].name,
-                schema: importedEntity[Object.keys(importedEntity)[1]],
-            }
+    if (entities.length === 0 && schemas.length === 1 && classes.length === 1) {
+        return [{ name: classes[0].name, schema: schemas[0][1] }]
+    }
+    if (entities.length === 0) {
+        throw new Error(`Cannot find the entity exported from "${path}", export the class "Name" along with its schema "NameSchema"`)
+    }
+    return entities
+}
 
-            const discriminators = discriminatorsRelativePath.filter((e) => e.includes(entity.replace(/(.+)(\/.+)$/gm, '$1')))
+async function importFiles(sourcePaths: string[], toOutputPath: (path: string) => string): Promise<{ path: string; exported: ModuleExports }[]> {
+    const outputPaths = sourcePaths.map(toOutputPath)
+    outputPaths.forEach((path, i) => registerOutputRoot(sourcePaths[i], path))
+    return Promise.all(outputPaths.map(async (path) => ({ path, exported: await import(path) })))
+}
 
-            if (discriminators.length !== 0) {
-                const importedDiscriminators = await Promise.all(discriminators.map((path) => import(path)))
-                provider['discriminators'] = importedDiscriminators.map((e) => {
-                    return { name: e[Object.keys(e)[0]].name, schema: e[Object.keys(e)[1]] }
-                })
+async function createModule(
+    fixturesPathPattern: string,
+    entitiesPathPattern: string,
+    discriminatorDir: string,
+    toFixtureOutputPath: (path: string) => string,
+    toEntityOutputPath: (path: string) => string,
+): Promise<DynamicModule> {
+    // import fixtures
+    const importedFixtures = await importFiles(glob.sync(fixturesPathPattern), toFixtureOutputPath)
+    const fixturesProviders: any[] = importedFixtures.flatMap(({ path, exported }) => getFixtures(exported, path))
+
+    // import entities
+    const importedEntities = await importFiles(glob.sync(entitiesPathPattern), toEntityOutputPath)
+
+    const nonDiscriminators = importedEntities.filter((e) => !e.path.includes(discriminatorDir))
+    const discriminators = importedEntities.filter((e) => e.path.includes(discriminatorDir))
+
+    const entitiesProviders: any[] = []
+
+    for (const entity of nonDiscriminators) {
+        const entityDiscriminators = discriminators
+            .filter((e) => e.path.includes(entity.path.replace(/(.+)(\/.+)$/gm, '$1')))
+            .flatMap((e) => getEntities(e.exported, e.path))
+
+        for (const provider of getEntities(entity.exported, entity.path)) {
+            if (entityDiscriminators.length !== 0) {
+                provider['discriminators'] = entityDiscriminators
             }
 
             entitiesProviders.push(provider)
         }
+    }
 
-        return {
-            module: FixturesModule,
-            imports: [MongooseModule.forFeature(entitiesProviders)],
-            providers: [
-                ReferenceRepository,
-                ...fixturesProviders,
-                {
-                    provide: 'FIXTURES',
-                    useFactory(...args) {
-                        const providersObject = {}
-                        args.forEach((arg) => (providersObject[arg.constructor.name] = arg))
-                        return providersObject
-                    },
-                    inject: fixturesProviders,
+    return {
+        module: FixturesModule,
+        imports: [MongooseModule.forFeature(entitiesProviders)],
+        providers: [
+            ReferenceRepository,
+            ...fixturesProviders,
+            {
+                provide: 'FIXTURES',
+                useFactory(...args) {
+                    const providersObject = {}
+                    args.forEach((arg) => (providersObject[arg.constructor.name] = arg))
+                    return providersObject
                 },
-            ],
-            exports: ['FIXTURES'],
-        }
+                inject: fixturesProviders,
+            },
+        ],
+        exports: ['FIXTURES'],
+    }
+}
+
+export class FixturesModule {
+    static async forRootAsync(fixturesPathPattern: string, entitiesPathPattern: string, discriminatorDir: string = 'discriminatorDir'): Promise<DynamicModule> {
+        const toOutputPath = (path: string) => path.replace('src/', `${process.cwd()}/dist/`).replace('.ts', '')
+        return createModule(fixturesPathPattern, entitiesPathPattern, discriminatorDir, toOutputPath, toOutputPath)
     }
 
     static async forRootAsyncMonorepo(
@@ -70,66 +113,12 @@ export class FixturesModule {
         discriminatorDir: string = 'discriminators',
         buildDir: string = 'dist',
     ): Promise<DynamicModule> {
-        // import fixtures
-        const fixturesPath = glob.sync(fixturesPathPattern)
-        const fixturesRelativePath = fixturesPath
-            .map((path) => `${process.cwd()}/${buildDir}/${path.split('/').slice(-2).join('/')}`)
-            .map((path) => path.replace('.ts', ''))
-        const fixturesProviders: any[] = []
-        const importedFixtures = await Promise.all(fixturesRelativePath.map((path) => import(path)))
-
-        importedFixtures.forEach((fixture) => {
-            fixturesProviders.push(fixture[Object.keys(fixture)[0]])
-        })
-
-        // import entities
-        const entitiesPath = glob.sync(entitiesPathPattern)
-        const entitiesRelativePath = entitiesPath
-            .map((path) => `${process.cwd()}/${buildDir}/${path.split('/').slice(-3).join('/')}`)
-            .map((path) => path.replace('.ts', ''))
-
-        const nonDiscriminatorsRelativePath = entitiesRelativePath.filter((e) => !e.includes(discriminatorDir))
-        const discriminatorsRelativePath = entitiesRelativePath.filter((e) => e.includes(discriminatorDir))
-
-        const entitiesProviders: any[] = []
-
-        for (const entity of nonDiscriminatorsRelativePath) {
-            const importedEntity = await import(entity)
-
-            const provider = {
-                name: importedEntity[Object.keys(importedEntity)[0]].name,
-                schema: importedEntity[Object.keys(importedEntity)[1]],
-            }
-
-            const discriminators = discriminatorsRelativePath.filter((e) => e.includes(entity.replace(/(.+)(\/.+)$/gm, '$1')))
-
-            if (discriminators.length !== 0) {
-                const importedDiscriminators = await Promise.all(discriminators.map((path) => import(path)))
-                provider['discriminators'] = importedDiscriminators.map((e) => {
-                    return { name: e[Object.keys(e)[0]].name, schema: e[Object.keys(e)[1]] }
-                })
-            }
-
-            entitiesProviders.push(provider)
-        }
-
-        return {
-            module: FixturesModule,
-            imports: [MongooseModule.forFeature(entitiesProviders)],
-            providers: [
-                ReferenceRepository,
-                ...fixturesProviders,
-                {
-                    provide: 'FIXTURES',
-                    useFactory(...args) {
-                        const providersObject = {}
-                        args.forEach((arg) => (providersObject[arg.constructor.name] = arg))
-                        return providersObject
-                    },
-                    inject: fixturesProviders,
-                },
-            ],
-            exports: ['FIXTURES'],
-        }
+        return createModule(
+            fixturesPathPattern,
+            entitiesPathPattern,
+            discriminatorDir,
+            (path) => `${process.cwd()}/${buildDir}/${path.split('/').slice(-2).join('/')}`.replace('.ts', ''),
+            (path) => `${process.cwd()}/${buildDir}/${path.split('/').slice(-3).join('/')}`.replace('.ts', ''),
+        )
     }
 }

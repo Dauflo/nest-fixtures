@@ -69,6 +69,10 @@ export class AppModule {}
 
 You can change the directory path schema to match you project directory structure.
 
+Each schema file must export the entity class along with its schema, named after the class (`Cat` and `CatSchema`). The file can export anything else (types, enums, constants, other entities), only the `Name`/`NameSchema` pairs are registered.
+
+Fixtures and schema files can use non-relative imports resolved through `baseUrl` (`import { Cat } from 'src/models/cats/cat.schema'`) even if your build does not rewrite them: they are resolved against the build directory. This does not apply to the entrypoint file and the module importing `FixturesModule`, which are loaded before the fixtures, so keep relative imports there.
+
 Now you need to create a new entrypoint file and update a bit your `packages.json`
 
 ```ts
