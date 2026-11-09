@@ -1,0 +1,15 @@
+{
+    "compilerOptions": {
+        "target": "ES2021",
+        "module": "CommonJS",
+        "outDir": "./dist",
+        "baseUrl": "./",
+        "paths": {
+            "src/*": ["backend/src/*"]
+        },
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true,
+        "skipLibCheck": true
+    },
+    "include": ["backend/src/**/*.ts", "backend/libs/**/*.ts"]
+}

@@ -1,0 +1,13 @@
+{
+    "compilerOptions": {
+        "target": "ES2021",
+        "module": "CommonJS",
+        "outDir": "./dist",
+        "baseUrl": "./",
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true,
+        "skipLibCheck": true,
+        "noEmitOnError": false
+    },
+    "include": ["src/**/*.ts"]
+}

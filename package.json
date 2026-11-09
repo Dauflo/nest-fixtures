@@ -10,7 +10,8 @@
   },
   "scripts": {
     "build": "tsc",
-    "format": "prettier --write \"src/*.ts\""
+    "format": "prettier --write \"src/*.ts\"",
+    "test": "npm run build && node test/setup.js && node --test test/*.test.js"
   },
   "keywords": [
     "cli",
