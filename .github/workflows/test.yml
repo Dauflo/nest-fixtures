@@ -1,7 +1,9 @@
 name: Test
 
 on:
+  # pull requests are tested through `pull_request`, only `master` needs `push` (it would run the tests twice on a pull request)
   push:
+    branches: [master]
   pull_request:
 
 jobs:
